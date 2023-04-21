@@ -11,42 +11,23 @@ app.use(express.static('public'));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api', api);
 
-app.get('/', (req, res) =>
-  res.sendFile(path.join(__dirname, '/public/index.html'))
-);
 
-app.get('/notes', (req, res) =>
-  res.sendFile(path.join(__dirname, '/public/notes.html'))
-);
-
-app.get('/api/notes', (req, res) => {
-    fs.readFile("./db/db.json" , "utf-8", (err, data) =>
-    {if (err) {
-        throw err}
-        res.status(200).json(JSON.parse (data))
+app.get('/api/notes/', (req, res) => {
+    fs.readFile("./db/db.json", "utf-8", (err, data) => {
+        if (err) {
+            throw err
+        } else {
+            res.status(200).json(JSON.parse(data))
+        }
     })
-    readFromFile('./db/db.json').then((data) => res.json(JSON.parse(data)));
-    console.info (`${req.method} request received to get notes`);
+    console.info(`${req.method} request received to get notes`);
 })
-
-const readAndAppend = (content, file) => {
-    fs.readFile(file, 'utf8', (err, data) => {
-      if (err) {
-        console.error(err);
-      } else {
-        const parsedData = JSON.parse(data);
-        parsedData.push(content);
-        writeToFile(file, parsedData);
-      }
-    });
-  };
 
 
 app.post('/api/notes', (req, res) => {
     res.status(200).json(`${req.method} request received to add a note`);
-    console.info (`${req.method} request received to add a note`);
+    // console.info(`${req.method} request received to add a note`);
 
     const { title, text } = req.body;
 
@@ -54,20 +35,38 @@ app.post('/api/notes', (req, res) => {
         const newNote = {
             title,
             text,
-            note_id: uuid()
+            id: uuid()
         };
-        readAndAppend(newTip, './db/db.json');
-        res.json(`note added successfully`)
+
+        fs.readFile('./db/db.json', 'utf8', (err, data) => {
+            if (err) {
+                throw err
+            } else{
+                let parsedNotes = JSON.parse(data);
+
+                parsedNotes.push(newNote);
+
+                fs.writeFile('./db/db.json', JSON.stringify(parsedNotes, null, 4), (writeErr) =>
+                writeErr ? console.error(writeErr) : console.info("successful update"))
+            }
+        })
+
     } else {
         res.error(`error adding note`)
     }
 })
 
+app.get('/', (req, res) =>
+    res.sendFile(path.join(__dirname, '/public/index.html'))
+);
 
+app.get('/notes', (req, res) =>
+    res.sendFile(path.join(__dirname, '/public/notes.html'))
+);
 
 
 app.get('*', (req, res) =>
-  res.sendFile(path.join(__dirname, '/public/index.html'))
+    res.sendFile(path.join(__dirname, '/public/index.html'))
 );
 
 app.listen(PORT, () => console.log(`App listening on port ${PORT}`));
